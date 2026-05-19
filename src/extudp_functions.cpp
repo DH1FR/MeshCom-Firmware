@@ -100,12 +100,17 @@ void startExternUDP()
   snprintf(s_extern, sizeof(s_extern), "%i.%i.%i.%i", extern_node_ip[0], extern_node_ip[1], extern_node_ip[2], extern_node_ip[3]);
   s_extern_node_ip = s_extern;
 
-  UdpExtern.begin(EXTERN_PORT);
+  if(UdpExtern.begin(EXTERN_PORT) == 0)
+  {
+    Serial.println("[EXT] UdpExtern.begin() failed - socket not bound, will retry");
+    return;
+  }
 
   #if defined(ESP32)
   if(!WiFi.isConnected())
   {
     Serial.println("[EXT] no WiFI connection open");
+    UdpExtern.stop();
     return;
   }
 
