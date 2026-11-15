@@ -81,6 +81,10 @@
 #include <nrf_eth.h>                    // ethIsStaticConfigured() for the GWU status helpers
 // Boot counters of the RX-silence tracker (nrf52_main.cpp).
 extern void rxSilenceGetStats(uint32_t *silences, uint32_t *longest_s, uint32_t *total_s);
+// Heap figures for --info (nrf52_main.cpp): free now, free minimum seen by the heap monitor, largest free block.
+extern uint32_t nrf52_getFreeHeap(void);
+extern uint32_t nrf52_heapMinFree;
+extern uint32_t nrf52_getMaxFreeBlock(void);
 #endif
 #if defined(ESP32)
 // Boot counters of the RX-silence tracker (esp32/esp32_main.cpp).
@@ -7993,6 +7997,11 @@ void commandAction(char *umsg_text, bool ble)
             #if defined(HAS_TFT)
             printfdeb("...TFT sprite   : %lu B%s\n", (unsigned long)tftSpriteBytes(), bDisplayOff ? " (display off)" : "");
             #endif
+            #endif
+            #if defined(NRF52_SERIES)
+            // same line as on ESP32; "min" is the lowest value the heap monitor has seen
+            printfdeb("...HEAP         : free %lu min %lu blk %lu\n", (unsigned long)nrf52_getFreeHeap(),
+                      (unsigned long)nrf52_heapMinFree, (unsigned long)nrf52_getMaxFreeBlock());
             #endif
             #ifdef ESP32
             { // RM-NVS-01: NVS fill level (RM "remember password" fails when the 20 KB partition is full)
