@@ -68,6 +68,11 @@ void singleClick()
           return;
       }
   }
+
+  // Every click restarts the off timer, not only the click that woke the display: the display
+  // must not go dark in the middle of paging through the messages.
+  if(bDisplayOff)
+      DisplayOffWait = millis() + (30 * 1000);
   #endif
 
   #if defined(BOARD_HELTEC_T114)
