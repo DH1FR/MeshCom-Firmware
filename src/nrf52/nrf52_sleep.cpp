@@ -1,6 +1,9 @@
 // Issue 962 (docs/issue-962-deepsleep-verdict.md, section 6.4). See nrf52_sleep.h.
 
 #include "nrf52_sleep.h"
+#if defined(BOARD_HELTEC_T114)
+#include "t114_backlight.h"
+#endif
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -72,6 +75,7 @@ void nrf52EnterDeepSleep()
 
     // (c) Display off. RAK4631 has none.
     #if defined(BOARD_HELTEC_T114)
+    t114BacklightRelease(false);            // a dimmed backlight is PWM driven: back to GPIO first
     digitalWrite(PIN_TFT_LEDA_CTL, HIGH);   // TFT backlight off
     digitalWrite(PIN_TFT_VDD_CTL, HIGH);    // TFT VDD off
     #endif

@@ -8,6 +8,9 @@
 
 #include <Arduino.h>
 #include "instrument.h"
+#if defined(BOARD_HELTEC_T114)
+#include "t114_backlight.h"
+#endif
 #include "track_warning.h" // TRK-01: Warnhinweis bei aktivem Track
 #include <maxhop.h>         // CS-01: plausibility of the persisted text hop limit
 #include <SPI.h>
@@ -2543,6 +2546,7 @@ void nrf52loop()
                 bDisplayIsOff=true;
 
                 #if defined(BOARD_HELTEC_T114)
+                t114BacklightRelease(false);            // end of the dimmed phase, then off
                 digitalWrite(PIN_TFT_LEDA_CTL, HIGH);   // TFT OFF
                 #endif
 
@@ -2550,6 +2554,10 @@ void nrf52loop()
             }
         }
     }
+
+    #if defined(BOARD_HELTEC_T114)
+    t114BacklightTick();   // dims in the second half of the off timer, back to full on activity
+    #endif
     
     // rebootAuto
     if(rebootAuto > 0)
