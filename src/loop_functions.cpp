@@ -1810,6 +1810,7 @@ void oledStat()
 #if defined(BOARD_HELTEC_T114)
 #include "t114_gps_page.h"
 #include "t114_pos_list.h"
+#include "t114_dm_list.h"
 extern bool nrf52LastRxQuality(int16_t *rssi, int8_t *snr);   // nrf52_main.cpp
 #endif
 
@@ -2203,6 +2204,19 @@ void sendDisplayTime()
         return;
     }
 
+    // unread direct messages: static page, only the age in its header runs
+    if(t114DmPageActive())
+    {
+        if(pageHold > 0)
+        {
+            t114DmPageUpdate();
+            return;
+        }
+        t114DmPageClose();
+        sendDisplayHead(true);
+        return;
+    }
+
     // list of the heard positions: static page, only the age in its header runs
     if(t114PosPageActive())
     {
@@ -2305,6 +2319,10 @@ static void sendDisplayClockLine()
     if(!bGPSON && !bDisplayTrack)
         snprintf(cstatus, sizeof(cstatus),  "%-4.4s%-1.1s ", SOURCE_VERSION, SOURCE_VERSION_SUB);
 
+    #if defined(BOARD_HELTEC_T114)
+    t114DmMarker(cstatus);   // "DM2": unread direct messages
+    #endif
+
     // CLK-01 W2 (F2): Uhrzeile jede Sekunde auf Seiten mit Uhrzeile (Info/Position/Track/WX); nur
     // pageText[0] wird getauscht und der Seitenpuffer neu uebertragen. Die Nachrichtenseite
     // (iDisplayType 0) kommt nie bis hierher (SkipType0 oben): ihre Kopfzeile bleibt erhalten.
@@ -2383,6 +2401,10 @@ void sendDisplayMainline()
 
     if(!bGPSON && !bDisplayTrack)
         snprintf(cstatus, sizeof(cstatus),  "%-4.4s%-1.1s ", SOURCE_VERSION, SOURCE_VERSION_SUB);
+
+    #if defined(BOARD_HELTEC_T114)
+    t114DmMarker(cstatus);   // "DM2": unread direct messages
+    #endif
 
     #if defined(XPOWERS_CHIP_AXP192) || defined(HAS_EPAPER) || defined(BOARD_TBEAM_1W) || defined(BOARD_T_CONNECT_PRO)
     // [OE3WAS] 2S-Akku nom. 7.4V (LiPo = 5.0 .. 8.4 V)
@@ -2488,6 +2510,10 @@ void wpRefreshClock()
 
     if(!bGPSON && !bDisplayTrack)
         snprintf(cstatus, sizeof(cstatus),  "%-4.4s%-1.1s ", SOURCE_VERSION, SOURCE_VERSION_SUB);
+
+    #if defined(BOARD_HELTEC_T114)
+    t114DmMarker(cstatus);   // "DM2": unread direct messages
+    #endif
 
     char st[40];
     int dh, dm, ds;
@@ -3107,6 +3133,10 @@ void sendDisplayText(struct aprsMessage &aprsmsg, int16_t rssi, int8_t snr)
             bPosDisplay=false;
     }
 
+    #if defined(BOARD_HELTEC_T114)
+    t114DmStore(aprsmsg);   // a direct message stays until the user has paged to it, even if the display is busy
+    #endif
+
     if(bSetDisplay)
         return;
 
@@ -3120,6 +3150,7 @@ void sendDisplayText(struct aprsMessage &aprsmsg, int16_t rssi, int8_t snr)
     #if defined(BOARD_HELTEC_T114)
     t114GpsPageClose();   // the message is drawn over the GPS page
     t114PosPageClose();
+    t114DmPageClose();
     #endif
 
     #if defined(WP_DISP)

@@ -21,6 +21,7 @@
 #if defined(BOARD_HELTEC_T114)
 #include "t114_gps_page.h"
 #include "t114_pos_list.h"
+#include "t114_dm_list.h"
 #endif
 
 #if defined(BOARD_T_ECHO)
@@ -74,14 +75,38 @@ void singleClick()
           t114PosPageRedraw();   // the click only wakes the display
           return;
       }
+
+      if(t114DmPageActive())
+      {
+          t114DmPageRedraw();    // the click only wakes the display
+          return;
+      }
   }
   #endif
 
   #if defined(BOARD_HELTEC_T114)
-  // Track mode keeps the track page, the click only toggles the graphic GPS page.
+  // Track mode keeps the track page, the click only toggles the graphic GPS page; unread
+  // direct messages come first.
   if(bDisplayTrack)
   {
-      if(t114GpsPageActive())
+      if(t114DmPageActive())
+      {
+          if(!t114DmPageNext())
+          {
+              t114DmPageClose();
+              pageHold = 0;
+              pagePointer = pageLastPointer - 1;
+              if(pagePointer < 0)
+                  pagePointer = PAGE_MAX - 1;
+              bOneButton = true;
+              sendDisplayHead(true);   // back to the track page
+          }
+      }
+      else if(!t114GpsPageActive() && t114DmUnread() > 0)
+      {
+          t114DmPageOpen();
+      }
+      else if(t114GpsPageActive())
       {
           t114GpsPageClose();
           pageHold = 0;
@@ -109,6 +134,22 @@ void singleClick()
     {
       // Page order: stored messages -> status page -> GPS page -> status page (home) ...
       static unsigned long t114StatusAt = 0;   // millis() when the status page was shown by a click
+
+      if(t114DmPageActive())
+      {
+        // click on an unread direct message: the next one; after the last one back to the status page
+        if(t114DmPageNext())
+          return;
+
+        t114DmPageClose();
+        t114StatusAt = 0;
+        pageHold = 0;
+        pagePointer = pageLastPointer - 1;
+        if(pagePointer < 0)
+          pagePointer = PAGE_MAX - 1;
+        sendDisplayHead(true);
+        return;
+      }
 
       if(t114PosPageActive())
       {
@@ -141,6 +182,14 @@ void singleClick()
         if(pagePointer < 0)
           pagePointer = PAGE_MAX - 1;
         sendDisplayHead(true);
+        return;
+      }
+
+      // unread direct messages come before everything else
+      if(t114DmUnread() > 0)
+      {
+        t114StatusAt = 0;
+        t114DmPageOpen();
         return;
       }
 
@@ -388,6 +437,7 @@ void tripleClick()
   digitalWrite(PIN_TFT_LEDA_CTL, LOW);   // TFT ON: sendDisplayHead() below can return early and leave the panel dark
   t114GpsPageClose();                    // the track page replaces the GPS page
   t114PosPageClose();
+  t114DmPageClose();
   pageHold = 0;
   #endif
 
