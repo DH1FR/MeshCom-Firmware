@@ -362,9 +362,17 @@ void tripleClick()
   pageHold = 0;
   #endif
 
+  // Track switches the GPS on. Leaving Track switches the GPS off only if this button switched
+  // it on for Track. A GPS that was on before, and a Track that was started elsewhere (app,
+  // --track on, restored after a reboot), leave the GPS as it is.
+  #if defined (ENABLE_GPS) or defined(BOARD_RAK4630) or defined(BOARD_HELTEC_T114) or defined(BOARD_T_ECHO)
+  static bool bGpsSwitchedOnByTrack = false;
+  #endif
+
   if(bDisplayTrack)
   {
       #if defined (ENABLE_GPS) or defined(BOARD_RAK4630) or defined(BOARD_HELTEC_T114) or defined(BOARD_T_ECHO)
+      bGpsSwitchedOnByTrack = !bGPSON;
       commandAction((char*)"--gps on", false);
       #endif
       commandAction((char*)"--track on", false);
@@ -372,7 +380,9 @@ void tripleClick()
   else
   {
       #if defined (ENABLE_GPS) or defined(BOARD_RAK4630) or defined(BOARD_HELTEC_T114) or defined(BOARD_T_ECHO)
-      commandAction((char*)"--gps off", false);
+      if(bGpsSwitchedOnByTrack)
+          commandAction((char*)"--gps off", false);
+      bGpsSwitchedOnByTrack = false;
       #endif
       commandAction((char*)"--track off", false);
   }
